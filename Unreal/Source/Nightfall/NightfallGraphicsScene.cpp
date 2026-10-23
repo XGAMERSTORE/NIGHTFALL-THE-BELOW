@@ -87,7 +87,7 @@ void ANightfallGraphicsScene::BuildTerrain()
 			const FVector Dy(0.0f, Step, HeightAt(LocalX, LocalY + Step) - HeightAt(LocalX, LocalY - Step));
 			Normals.Add(FVector::CrossProduct(Dx, Dy).GetSafeNormal());
 			UVs.Emplace(LocalX / 3500.0f, LocalY / 3500.0f);
-			const float HeightShade = FMath::GetMappedRangeValueClamped(FVector(-1000.0f, 2200.0f), FVector(0.0f, 1.0f), Z);
+			const float HeightShade = FMath::GetMappedRangeValueClamped(FVector2D(-1000.0f, 2200.0f), FVector2D(0.0f, 1.0f), Z);
 			Colors.Emplace(FMath::Lerp(0.18f, 0.42f, HeightShade), FMath::Lerp(0.22f, 0.34f, HeightShade), FMath::Lerp(0.16f, 0.30f, HeightShade), 1.0f);
 			Tangents.Emplace(FVector(1.0f, 0.0f, (HeightAt(LocalX + Step, LocalY) - HeightAt(LocalX - Step, LocalY)) / (2.0f * Step)), false);
 		}
@@ -209,8 +209,8 @@ void ANightfallGraphicsScene::BuildCabin()
 	Add(FVector(-490.0f, -325.0f, 170.0f), FVector(24.0f, 250.0f, 320.0f), FRotator::ZeroRotator, Wood);
 	Add(FVector(-490.0f, 325.0f, 170.0f), FVector(24.0f, 250.0f, 320.0f), FRotator::ZeroRotator, Wood);
 	Add(FVector(-490.0f, 0.0f, 300.0f), FVector(24.0f, 400.0f, 60.0f), FRotator::ZeroRotator, Wood);
-	Add(FVector(0.0f, -215.0f, 390.0f), FVector(1060.0f, 500.0f, 28.0f), FRotator(0.0f, 0.0f, 28.0f), Roof);
-	Add(FVector(0.0f, 215.0f, 390.0f), FVector(1060.0f, 500.0f, 28.0f), FRotator(0.0f, 0.0f, -28.0f), Roof);
+	Add(FVector(0.0f, -215.0f, 550.0f), FVector(1060.0f, 500.0f, 28.0f), FRotator(0.0f, 0.0f, 28.0f), Roof);
+	Add(FVector(0.0f, 215.0f, 550.0f), FVector(1060.0f, 500.0f, 28.0f), FRotator(0.0f, 0.0f, -28.0f), Roof);
 }
 
 void ANightfallGraphicsScene::BuildAtmosphere()
