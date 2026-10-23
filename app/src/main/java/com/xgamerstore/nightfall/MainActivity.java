@@ -105,9 +105,13 @@ public final class MainActivity extends Activity {
                 String mime = assetPath.endsWith(".html") ? "text/html"
                         : assetPath.endsWith(".js") ? "application/javascript"
                         : assetPath.endsWith(".css") ? "text/css"
+                        : assetPath.endsWith(".webp") ? "image/webp"
+                        : assetPath.endsWith(".png") ? "image/png"
                         : "application/octet-stream";
                 try {
-                    return new WebResourceResponse(mime, "UTF-8", 200, "OK",
+                    String encoding = mime.startsWith("text/") || mime.equals("application/javascript")
+                            ? "UTF-8" : null;
+                    return new WebResourceResponse(mime, encoding, 200, "OK",
                             Collections.singletonMap("Access-Control-Allow-Origin", "*"),
                             MainActivity.this.getAssets().open(assetPath));
                 } catch (IOException ignored) {

@@ -2,7 +2,7 @@
 
 A landscape 3D horror-survival prototype set across Greendale, Riverdale, and the breach below. The game keeps scavenging, crafting, building, survival meters, and co-op, with a witchcraft story, named NPC encounters, broom flight, Witchfire, a grapple charm, and protective runic wards.
 
-The world uses bundled Three.js and locally generated terrain detail, so the 3D scene does not need a graphics-library download. Internet access is used only when a player chooses co-op.
+The world uses bundled Three.js and original 1024 × 1024 PBR texture sets for wet forest soil, cedar bark, and weathered cabin wood. It also includes separate normal and roughness maps, a generated overcast/night sky, higher mobile render resolution, and anisotropic filtering. The game does not need a graphics-library download; internet access is used only when a player chooses co-op.
 
 This is still a lightweight prototype. Characters, monsters, buildings, and trees are procedural low-poly models; it does not contain photorealistic character models, facial animation, or a full commercial-game physics simulation. The current gameplay includes momentum-based movement, collisions with trees, gravity and landing damage, and a fear system that reacts to nearby monsters and eases near allies, wards, and fire.
 
