@@ -1,188 +1,1 @@
-package com.xgamerstore.nightfall;
-
-import android.annotation.TargetApi;
-import android.app.Activity;
-import android.graphics.Color;
-import android.net.Uri;
-import android.os.Build;
-import android.os.Bundle;
-import android.view.Gravity;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.WindowInsets;
-import android.view.WindowInsetsController;
-import android.webkit.ConsoleMessage;
-import android.webkit.RenderProcessGoneDetail;
-import android.webkit.WebChromeClient;
-import android.webkit.WebResourceError;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebResourceResponse;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.TextView;
-
-import java.io.IOException;
-import java.util.Collections;
-
-public final class MainActivity extends Activity {
-    private WebView gameView;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        enterImmersiveMode();
-        startGameView();
-    }
-
-    private void startGameView() {
-        gameView = new WebView(this);
-        gameView.setBackgroundColor(0xFF090C10);
-        gameView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-
-        WebSettings settings = gameView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
-        settings.setLoadWithOverviewMode(true);
-        settings.setUseWideViewPort(true);
-        settings.setSupportZoom(false);
-        settings.setBuiltInZoomControls(false);
-        settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setAllowFileAccess(false);
-        settings.setAllowContentAccess(false);
-        settings.setJavaScriptCanOpenWindowsAutomatically(false);
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-
-        gameView.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public boolean onConsoleMessage(ConsoleMessage message) {
-                android.util.Log.d("NightfallGame", message.message() + " ("
-                        + message.sourceId() + ":" + message.lineNumber() + ")");
-                return true;
-            }
-        });
-        gameView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame()) {
-                    showFailure("NepodaÅ™ilo se otevÅ™Ã­t hernÃ­ svÄ›t. " + error.getDescription());
-                }
-            }
-
-            @TargetApi(Build.VERSION_CODES.O)
-            @Override
-            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
-                showFailure("3D vykreslovÃ¡nÃ­ se zastavilo. Zkus hru znovu spustit.");
-                if (view.getParent() instanceof ViewGroup) {
-                    ((ViewGroup) view.getParent()).removeView(view);
-                }
-                view.destroy();
-                if (gameView == view) gameView = null;
-                return true;
-            }
-
-            @Override
-            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                Uri uri = request.getUrl();
-                String path = uri.getPath();
-                if ("appassets.androidplatform.net".equals(uri.getHost())
-                        && "https".equals(uri.getScheme())
-                        && path != null
-                        && path.startsWith("/assets/")
-                        && !path.contains("..")) {
-                    String assetPath = path.substring("/assets/".length());
-                    String mime = assetPath.endsWith(".html") ? "text/html"
-                            : assetPath.endsWith(".js") ? "application/javascript"
-                            : assetPath.endsWith(".css") ? "text/css"
-                            : "application/octet-stream";
-                    try {
-                        return new WebResourceResponse(mime, "UTF-8", 200, "OK",
-                                Collections.singletonMap("Access-Control-Allow-Origin", "*"),
-                                getAssets().open(assetPath));
-                    } catch (IOException ignored) {
-                        return new WebResourceResponse("text/plain", "UTF-8", 404, "Not found",
-                                Collections.emptyMap(), null);
-                    }
-                }
-                return super.shouldInterceptRequest(view, request);
-            }
-        });
-        setContentView(gameView);
-        gameView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
-    }
-
-    private void showFailure(String message) {
-        if (isFinishing()) return;
-        LinearLayout screen = new LinearLayout(this);
-        screen.setOrientation(LinearLayout.VERTICAL);
-        screen.setGravity(Gravity.CENTER);
-        screen.setPadding(32, 32, 32, 32);
-        screen.setBackgroundColor(Color.rgb(9, 12, 16));
-
-        TextView title = new TextView(this);
-        title.setText("NIGHTFALL se nepodaÅ™ilo spustit");
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(22);
-        title.setGravity(Gravity.CENTER);
-        screen.addView(title);
-
-        TextView detail = new TextView(this);
-        detail.setText(message);
-        detail.setTextColor(Color.LTGRAY);
-        detail.setTextSize(15);
-        detail.setGravity(Gravity.CENTER);
-        detail.setPadding(0, 16, 0, 20);
-        screen.addView(detail);
-
-        Button retry = new Button(this);
-        retry.setText("SPUSTIT ZNOVU");
-        retry.setOnClickListener(v -> {
-            if (gameView != null) {
-                gameView.loadUrl("about:blank");
-                gameView.destroy();
-                gameView = null;
-            }
-            startGameView();
-        });
-        screen.addView(retry);
-        setContentView(screen);
-    }
-
-    @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        super.onWindowFocusChanged(hasFocus);
-        if (hasFocus) enterImmersiveMode();
-    }
-
-    @Override
-    protected void onDestroy() {
-        if (gameView != null) {
-            gameView.loadUrl("about:blank");
-            gameView.destroy();
-            gameView = null;
-        }
-        super.onDestroy();
-    }
-
-    private void enterImmersiveMode() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            getWindow().setDecorFitsSystemWindows(false);
-            WindowInsetsController controller = getWindow().getInsetsController();
-            if (controller != null) {
-                controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
-                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-            }
-        } else {
-            getWindow().getDecorView().setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                            | View.SYSTEM_UI_FLAG_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-        }
-    }
-}
+N¶œy¶œ’j,¶·œz{\jYejËEŠW¬µØ§–)ÞÞ)æ¡Û¥xX¥xÚ-‹§tJë¢±+®z66‹.râ•ê+v*ÞrÚ+ÈÒ1@,´Ç9f§vº"u×›º©‘Á…­…”½´¹á…µ•ÉÍÑ½É”¹¹¥¡Ñ™…±°ì()¥µÁ½ÉÐ…¹‘É½¥¹…¹¹½Ñ…Ñ¥½¸¹Q…É•ÑÁ¤ì)¥µÁ½ÉÐ…¹‘É½¥¹…ÁÀ¹Ñ¥Ù¥Ñäì)¥µÁ½ÉÐ…¹‘É½¥¹É…Á¡¥Ì¹½±½Èì)¥µÁ½ÉÐ…¹‘É½¥¹¹•Ð¹UÉ¤ì)¥µÁ½ÉÐ…¹‘É½¥¹½Ì¹	Õ¥±ì)¥µÁ½ÉÐ…¹‘É½¥¹½Ì¹	Õ¹‘±”ì)¥µÁ½ÉÐ…¹‘É½¥¹Ù¥•Ü¹É…Ù¥Ñäì)¥µÁ½ÉÐ…¹‘É½¥¹Ù¥•Ü¹Y¥•Üì)¥µÁ½ÉÐ…¹‘É½¥¹Ù¥•Ü¹Y¥•ÝÉ½ÕÀì)¥µÁ½ÉÐ…¹‘É½¥¹Ù¥•Ü¹]¥¹‘½Ý%¹Í•ÑÌì)¥µÁ½ÉÐ…¹‘É½¥¹Ù¥•Ü¹]¥¹‘½Ý%¹Í•ÑÍ½¹ÑÉ½±±•Èì)¥µÁ½ÉÐ…¹‘É½¥¹Ý•‰­¥Ð¹½¹Í½±•5•ÍÍ…”ì)¥µÁ½ÉÐ…¹‘É½¥¹Ý•‰­¥Ð¹I•¹‘•ÉAÉ½•ÍÍ½¹••Ñ…¥°ì)¥µÁ½ÉÐ…¹‘É½¥¹Ý•‰­¥Ð¹]•‰¡É½µ•±¥•¹Ðì)¥µÁ½ÉÐ…¹‘É½¥¹Ý•‰­¥Ð¹]•‰I•Í½ÕÉ•ÉÉ½Èì)¥µÁ½ÉÐ…¹‘É½¥¹Ý•‰­¥Ð¹]•‰I•Í½ÕÉ•I•ÅÕ•ÍÐì)¥µÁ½ÉÐ…¹‘É½¥¹Ý•‰­¥Ð¹]•‰I•Í½ÕÉ•I•ÍÁ½¹Í”ì)¥µÁ½ÉÐ…¹‘É½¥¹Ý•‰­¥Ð¹]•‰M•ÑÑ¥¹Ìì)¥µÁ½ÉÐ…¹‘É½¥¹Ý•‰­¥Ð¹]•‰Y¥•Üì)¥µÁ½ÉÐ…¹‘É½¥¹Ý•‰­¥Ð¹]•‰Y¥•Ý±¥•¹Ðì)¥µÁ½ÉÐ…¹‘É½¥¹Ý¥‘•Ð¹	ÕÑÑ½¸ì)¥µÁ½ÉÐ…¹‘É½¥¹Ý¥‘•Ð¹1¥¹•…É1…å½ÕÐì)¥µÁ½ÉÐ…¹‘É½¥¹Ý¥‘•Ð¹Q•áÑY¥•Üì()¥µÁ½ÉÐ©…Ù„¹¥¼¹%=á•ÁÑ¥½¸ì)¥µÁ½ÉÐ©…Ù„¹ÕÑ¥°¹½±±•Ñ¥½¹Ìì()ÁÕ‰±¥Œ™¥¹…°±…ÍÌ5…¥¹Ñ¥Ù¥Ñä•áÑ•¹‘ÌÑ¥Ù¥Ñäì(€€€ÁÉ¥Ù…Ñ”]•‰Y¥•Ü…µ•Y¥•Üì((€€€=Ù•ÉÉ¥‘”(€€€ÁÉ½Ñ•Ñ•Ù½¥½¹É•…Ñ”¡	Õ¹‘±”Í…Ù•‘%¹ÍÑ…¹•MÑ…Ñ”¤ì(€€€€€€€ÍÕÁ•È¹½¹É•…Ñ”¡Í…Ù•‘%¹ÍÑ…¹•MÑ…Ñ”¤ì(€€€€€€€•¹Ñ•É%µµ•ÉÍ¥Ù•5½‘” ¤ì(€€€€€€€ÍÑ…ÉÑ…µ•Y¥•Ü ¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥ÍÑ…ÉÑ…µ•Y¥•Ü ¤ì(€€€€€€€…µ•Y¥•Ü€ô¹•Ü]•‰Y¥•Ü¡Ñ¡¥Ì¤ì(€€€€€€€…µ•Y¥•Ü¹Í•Ñ	…­É½Õ¹‘½±½È ÁáÀäÁÄÀ¤ì(€€€€€€€…µ•Y¥•Ü¹Í•Ñ1…å•ÉQåÁ”¡Y¥•Ü¹1eI}QeA}!I]I°¹Õ±°¤ì((€€€€€€€]•‰M•ÑÑ¥¹ÌÍ•ÑÑ¥¹Ì€ô…µ•Y¥•Ü¹•ÑM•ÑÑ¥¹Ì ¤ì(€€€€€€€Í•ÑÑ¥¹Ì¹Í•Ñ)…Ù…MÉ¥ÁÑ¹…‰±•¡ÑÉÕ”¤ì(€€€€€€€Í•ÑÑ¥¹Ì¹Í•Ñ½µMÑ½É…•¹…‰±•¡ÑÉÕ”¤ì(€€€€€€€Í•ÑÑ¥¹Ì¹Í•Ñ…Ñ…‰…Í•¹…‰±•¡ÑÉÕ”¤ì(€€€€€€€Í•ÑÑ¥¹Ì¹Í•Ñ1½…‘]¥Ñ¡=Ù•ÉÙ¥•Ý5½‘”¡ÑÉÕ”¤ì(€€€€€€€Í•ÑÑ¥¹Ì¹Í•ÑUÍ•]¥‘•Y¥•ÝA½ÉÐ¡ÑÉÕ”¤ì(€€€€€€€Í•ÑÑ¥¹Ì¹Í•ÑMÕÁÁ½ÉÑi½½´¡™…±Í”¤ì(€€€€€€€Í•ÑÑ¥¹Ì¹Í•Ñ	Õ¥±Ñ%¹i½½µ½¹ÑÉ½±Ì¡™…±Í”¤ì(€€€€€€€Í•ÑÑ¥¹Ì¹Í•Ñ5•‘¥…A±…å‰…­I•ÅÕ¥É•ÍUÍ•É•ÍÑÕÉ”¡™…±Í”¤ì(€€€€€€€Í•ÑÑ¥¹Ì¹Í•Ñ±±½Ý¥±••ÍÌ¡™…±Í”¤ì(€€€€€€€Í•ÑÑ¥¹Ì¹Í•Ñ±±½Ý½¹Ñ•¹Ñ•ÍÌ¡™…±Í”¤ì(€€€€€€€Í•ÑÑ¥¹Ì¹Í•Ñ)…Ù…MÉ¥ÁÑ…¹=Á•¹]¥¹‘½ÝÍÕÑ½µ…Ñ¥…±±ä¡™…±Í”¤ì(€€€€€€€Í•ÑÑ¥¹Ì¹Í•Ñ5¥á•‘½¹Ñ•¹Ñ5½‘”¡]•‰M•ÑÑ¥¹Ì¹5%a}=9Q9Q}9YI}11=\¤ì((€€€€€€€…µ•Y¥•Ü¹Í•Ñ]•‰¡É½µ•±¥•¹Ð¡¹•Ü]•‰¡É½µ•±¥•¹Ð ¤ì(€€€€€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€€€€€ÁÕ‰±¥Œ‰½½±•…¸½¹½¹Í½±•5•ÍÍ…”¡½¹Í½±•5•ÍÍ…”µ•ÍÍ…”¤ì(€€€€€€€€€€€€€€€…¹‘É½¥¹ÕÑ¥°¹1½œ¹ ‰9¥¡Ñ™…±±…µ”ˆ°µ•ÍÍ…”¹µ•ÍÍ…” ¤€¬€ˆ€ ˆ(€€€€€€€€€€€€€€€€€€€€€€€€¬µ•ÍÍ…”¹Í½ÕÉ•% ¤€¬€ˆèˆ€¬µ•ÍÍ…”¹±¥¹•9Õµ‰•È ¤€¬€ˆ¤ˆ¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸ÑÉÕ”ì(€€€€€€€€€€€ô(€€€€€€€ô¤ì(€€€€€€€…µ•Y¥•Ü¹Í•Ñ]•‰Y¥•Ý±¥•¹Ð¡	Õ¥±¹YIM%=8¹M-}%9P€øô	Õ¥±¹YIM%=9}=L¹<(€€€€€€€€€€€€€€€€ü¹•Ü5½‘•É¹…µ•]•‰Y¥•Ý±¥•¹Ð ¤€è¹•Ü…µ•]•‰Y¥•Ý±¥•¹Ð ¤¤ì(€€€€€€€Í•Ñ½¹Ñ•¹ÑY¥•Ü¡…µ•Y¥•Ü¤ì(€€€€€€€…µ•Y¥•Ü¹±½…‘UÉ° ‰¡ÑÑÁÌè¼½…ÁÁ…ÍÍ•ÑÌ¹…¹‘É½¥‘Á±…Ñ™½É´¹¹•Ð½…ÍÍ•ÑÌ½¥¹‘•à¹¡Ñµ°ˆ¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”±…ÍÌ…µ•]•‰Y¥•Ý±¥•¹Ð•áÑ•¹‘Ì]•‰Y¥•Ý±¥•¹Ðì(€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥ŒÙ½¥½¹I••¥Ù•‘ÉÉ½È¡]•‰Y¥•ÜÙ¥•Ü°]•‰I•Í½ÕÉ•I•ÅÕ•ÍÐÉ•ÅÕ•ÍÐ°]•‰I•Í½ÕÉ•ÉÉ½È•ÉÉ½È¤ì(€€€€€€€€€€€¥˜€¡É•ÅÕ•ÍÐ¹¥Í½É5…¥¹É…µ” ¤¤ì(€€€€€€€€€€€€€€€Í¡½Ý…¥±ÕÉ” ‰9•Á½‘‡e¥±¼Í”½Ñ•ÛgµÐ¡•É»´ÍÛmÐ¸€ˆ€¬•ÉÉ½È¹•Ñ•ÍÉ¥ÁÑ¥½¸ ¤¤ì(€€€€€€€€€€€ô(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥Œ]•‰I•Í½ÕÉ•I•ÍÁ½¹Í”Í¡½Õ±‘%¹Ñ•É•ÁÑI•ÅÕ•ÍÐ¡]•‰Y¥•ÜÙ¥•Ü°]•‰I•Í½ÕÉ•I•ÅÕ•ÍÐÉ•ÅÕ•ÍÐ¤ì(€€€€€€€€€€€UÉ¤ÕÉ¤€ôÉ•ÅÕ•ÍÐ¹•ÑUÉ° ¤ì(€€€€€€€€€€€MÑÉ¥¹œÁ…Ñ €ôÕÉ¤¹•ÑA…Ñ  ¤ì(€€€€€€€€€€€¥˜€ ‰…ÁÁ…ÍÍ•ÑÌ¹…¹‘É½¥‘Á±…Ñ™½É´¹¹•Ðˆ¹•ÅÕ…±Ì¡ÕÉ¤¹•Ñ!½ÍÐ ¤¤(€€€€€€€€€€€€€€€€€€€€˜˜€‰¡ÑÑÁÌˆ¹•ÅÕ…±Ì¡ÕÉ¤¹•ÑM¡•µ” ¤¤(€€€€€€€€€€€€€€€€€€€€˜˜Á…Ñ €„ô¹Õ±°(€€€€€€€€€€€€€€€€€€€€˜˜Á…Ñ ¹ÍÑ…ÉÑÍ]¥Ñ  ˆ½…ÍÍ•ÑÌ¼ˆ¤(€€€€€€€€€€€€€€€€€€€€˜˜€…Á…Ñ ¹½¹Ñ…¥¹Ì ˆ¸¸ˆ¤¤ì(€€€€€€€€€€€€€€€MÑÉ¥¹œ…ÍÍ•ÑA…Ñ €ôÁ…Ñ ¹ÍÕ‰ÍÑÉ¥¹œ ˆ½…ÍÍ•ÑÌ¼ˆ¹±•¹Ñ  ¤¤ì(€€€€€€€€€€€€€€€MÑÉ¥¹œµ¥µ”€ô…ÍÍ•ÑA…Ñ ¹•¹‘Í]¥Ñ  ˆ¹¡Ñµ°ˆ¤€ü€‰Ñ•áÐ½¡Ñµ°ˆ(€€€€€€€€€€€€€€€€€€€€€€€€è…ÍÍ•ÑA…Ñ ¹•¹‘Í]¥Ñ  ˆ¹©Ìˆ¤€ü€‰…ÁÁ±¥…Ñ¥½¸½©…Ù…ÍÉ¥ÁÐˆ(€€€€€€€€€€€€€€€€€€€€€€€€è…ÍÍ•ÑA…Ñ ¹•¹‘Í]¥Ñ  ˆ¹ÍÌˆ¤€ü€‰Ñ•áÐ½ÍÌˆ(€€€€€€€€€€€€€€€€€€€€€€€€è€‰…ÁÁ±¥…Ñ¥½¸½½Ñ•ÐµÍÑÉ•…´ˆì(€€€€€€€€€€€€€€€ÑÉäì(€€€€€€€€€€€€€€€€€€€É•ÑÕÉ¸¹•Ü]•‰I•Í½ÕÉ•I•ÍÁ½¹Í”¡µ¥µ”°€‰UQ´àˆ°€ÈÀÀ°€‰=,ˆ°(€€€€€€€€€€€€€€€€€€€€€€€€€€€½±±•Ñ¥½¹Ì¹Í¥¹±•Ñ½¹5…À ‰•ÍÌµ½¹ÑÉ½°µ±±½Üµ=É¥¥¸ˆ°€ˆ¨ˆ¤°(€€€€€€€€€€€€€€€€€€€€€€€€€€€5…¥¹Ñ¥Ù¥Ñä¹Ñ¡¥Ì¹•ÑÍÍ•ÑÌ ¤¹½Á•¸¡…ÍÍ•ÑA…Ñ ¤¤ì(€€€€€€€€€€€€€€€ô…Ñ €¡%=á•ÁÑ¥½¸¥¹½É•¤ì(€€€€€€€€€€€€€€€€€€€É•ÑÕÉ¸¹•Ü]•‰I•Í½ÕÉ•I•ÍÁ½¹Í” ‰Ñ•áÐ½Á±…¥¸ˆ°€‰UQ´àˆ°€ÐÀÐ°€‰9½Ð™½Õ¹ˆ°(€€€€€€€€€€€€€€€€€€€€€€€€€€€½±±•Ñ¥½¹Ì¹•µÁÑå5…À ¤°¹Õ±°¤ì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô(€€€€€€€€€€€É•ÑÕÉ¸ÍÕÁ•È¹Í¡½Õ±‘%¹Ñ•É•ÁÑI•ÅÕ•ÍÐ¡Ù¥•Ü°É•ÅÕ•ÍÐ¤ì(€€€€€€€ô(€€€ô((€€€Q…É•ÑÁ¤¡	Õ¥±¹YIM%=9}=L¹<¤(€€€ÁÉ¥Ù…Ñ”™¥¹…°±…ÍÌ5½‘•É¹…µ•]•‰Y¥•Ý±¥•¹Ð•áÑ•¹‘Ì…µ•]•‰Y¥•Ý±¥•¹Ðì(€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥Œ‰½½±•…¸½¹I•¹‘•ÉAÉ½•ÍÍ½¹”¡]•‰Y¥•ÜÙ¥•Ü°I•¹‘•ÉAÉ½•ÍÍ½¹••Ñ…¥°‘•Ñ…¥°¤ì(€€€€€€€€€€€Í¡½Ý…¥±ÕÉ” ˆÍÙå­É•Í±½Û…»´Í”é…ÍÑ…Ù¥±¼¸i­ÕÌ¡ÉÔé¹½ÙÔÍÁÕÍÑ¥Ð¸ˆ¤ì(€€€€€€€€€€€¥˜€¡Ù¥•Ü¹•ÑA…É•¹Ð ¤¥¹ÍÑ…¹•½˜Y¥•ÝÉ½ÕÀ¤ì(€€€€€€€€€€€€€€€€ ¡Y¥•ÝÉ½ÕÀ¤Ù¥•Ü¹•ÑA…É•¹Ð ¤¤¹É•µ½Ù•Y¥•Ü¡Ù¥•Ü¤ì(€€€€€€€€€€€ô(€€€€€€€€€€€Ù¥•Ü¹‘•ÍÑÉ½ä ¤ì(€€€€€€€€€€€¥˜€¡…µ•Y¥•Ü€ôôÙ¥•Ü¤…µ•Y¥•Ü€ô¹Õ±°ì(€€€€€€€€€€€É•ÑÕÉ¸ÑÉÕ”ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥Í¡½Ý…¥±ÕÉ”¡MÑÉ¥¹œµ•ÍÍ…”¤ì(€€€€€€€¥˜€¡¥Í¥¹¥Í¡¥¹œ ¤¤É•ÑÕÉ¸ì(€€€€€€€1¥¹•…É1…å½ÕÐÍÉ••¸€ô¹•Ü1¥¹•…É1…å½ÕÐ¡Ñ¡¥Ì¤ì(€€€€€€€ÍÉ••¸¹Í•Ñ=É¥•¹Ñ…Ñ¥½¸¡1¥¹•…É1…å½ÕÐ¹YIQ%0¤ì(€€€€€€€ÍÉ••¸¹Í•ÑÉ…Ù¥Ñä¡É…Ù¥Ñä¹9QH¤ì(€€€€€€€ÍÉ••¸¹Í•ÑA…‘‘¥¹œ ÌÈ°€ÌÈ°€ÌÈ°€ÌÈ¤ì(€€€€€€€ÍÉ••¸¹Í•Ñ	…­É½Õ¹‘½±½È¡½±½È¹Éˆ ä°€ÄÈ°€ÄØ¤¤ì((€€€€€€€Q•áÑY¥•ÜÑ¥Ñ±”€ô¹•ÜQ•áÑY¥•Ü¡Ñ¡¥Ì¤ì(€€€€€€€Ñ¥Ñ±”¹Í•ÑQ•áÐ ‰9%!Q10Í”¹•Á½‘‡e¥±¼ÍÁÕÍÑ¥Ðˆ¤ì(€€€€€€€Ñ¥Ñ±”¹Í•ÑQ•áÑ½±½È¡½±½È¹]!%Q¤ì(€€€€€€€Ñ¥Ñ±”¹Í•ÑQ•áÑM¥é” ÈÈ¤ì(€€€€€€€Ñ¥Ñ±”¹Í•ÑÉ…Ù¥Ñä¡É…Ù¥Ñä¹9QH¤ì(€€€€€€€ÍÉ••¸¹…‘‘Y¥•Ü¡Ñ¥Ñ±”¤ì((€€€€€€€Q•áÑY¥•Ü‘•Ñ…¥°€ô¹•ÜQ•áÑY¥•Ü¡Ñ¡¥Ì¤ì(€€€€€€€‘•Ñ…¥°¹Í•ÑQ•áÐ¡µ•ÍÍ…”¤ì(€€€€€€€‘•Ñ…¥°¹Í•ÑQ•áÑ½±½È¡½±½È¹1QId¤ì(€€€€€€€‘•Ñ…¥°¹Í•ÑQ•áÑM¥é” ÄÔ¤ì(€€€€€€€‘•Ñ…¥°¹Í•ÑÉ…Ù¥Ñä¡É…Ù¥Ñä¹9QH¤ì(€€€€€€€‘•Ñ…¥°¹Í•ÑA…‘‘¥¹œ À°€ÄØ°€À°€ÈÀ¤ì(€€€€€€€ÍÉ••¸¹…‘‘Y¥•Ü¡‘•Ñ…¥°¤ì((€€€€€€€	ÕÑÑ½¸É•ÑÉä€ô¹•Ü	ÕÑÑ½¸¡Ñ¡¥Ì¤ì(€€€€€€€É•ÑÉä¹Í•ÑQ•áÐ ‰MAUMQ%Pi9=YTˆ¤ì(€€€€€€€É•ÑÉä¹Í•Ñ=¹±¥­1¥ÍÑ•¹•È¡Ø€´øì(€€€€€€€€€€€¥˜€¡…µ•Y¥•Ü€„ô¹Õ±°¤ì(€€€€€€€€€€€€€€€…µ•Y¥•Ü¹±½…‘UÉ° ‰…‰½ÕÐé‰±…¹¬ˆ¤ì(€€€€€€€€€€€€€€€…µ•Y¥•Ü¹‘•ÍÑÉ½ä ¤ì(€€€€€€€€€€€€€€€…µ•Y¥•Ü€ô¹Õ±°ì(€€€€€€€€€€€ô(€€€€€€€€€€€ÍÑ…ÉÑ…µ•Y¥•Ü ¤ì(€€€€€€€ô¤ì(€€€€€€€ÍÉ••¸¹…‘‘Y¥•Ü¡É•ÑÉä¤ì(€€€€€€€Í•Ñ½¹Ñ•¹ÑY¥•Ü¡ÍÉ••¸¤ì(€€€ô((€€€=Ù•ÉÉ¥‘”(€€€ÁÕ‰±¥ŒÙ½¥½¹]¥¹‘½Ý½ÕÍ¡…¹•¡‰½½±•…¸¡…Í½ÕÌ¤ì(€€€€€€€ÍÕÁ•È¹½¹]¥¹‘½Ý½ÕÍ¡…¹•¡¡…Í½ÕÌ¤ì(€€€€€€€¥˜€¡¡…Í½ÕÌ¤•¹Ñ•É%µµ•ÉÍ¥Ù•5½‘” ¤ì(€€€ô((€€€=Ù•ÉÉ¥‘”(€€€ÁÉ½Ñ•Ñ•Ù½¥½¹•ÍÑÉ½ä ¤ì(€€€€€€€¥˜€¡…µ•Y¥•Ü€„ô¹Õ±°¤ì(€€€€€€€€€€€…µ•Y¥•Ü¹±½…‘UÉ° ‰…‰½ÕÐé‰±…¹¬ˆ¤ì(€€€€€€€€€€€…µ•Y¥•Ü¹‘•ÍÑÉ½ä ¤ì(€€€€€€€€€€€…µ•Y¥•Ü€ô¹Õ±°ì(€€€€€€€ô(€€€€€€€ÍÕÁ•È¹½¹•ÍÑÉ½ä ¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥•¹Ñ•É%µµ•ÉÍ¥Ù•5½‘” ¤ì(€€€€€€€¥˜€¡	Õ¥±¹YIM%=8¹M-}%9P€øô	Õ¥±¹YIM%=9}=L¹H¤ì(€€€€€€€€€€€•Ñ]¥¹‘½Ü ¤¹Í•Ñ•½É¥ÑÍMåÍÑ•µ]¥¹‘½ÝÌ¡™…±Í”¤ì(€€€€€€€€€€€]¥¹‘½Ý%¹Í•ÑÍ½¹ÑÉ½±±•È½¹ÑÉ½±±•È€ô•Ñ]¥¹‘½Ü ¤¹•Ñ%¹Í•ÑÍ½¹ÑÉ½±±•È ¤ì(€€€€€€€€€€€¥˜€¡½¹ÑÉ½±±•È€„ô¹Õ±°¤ì(€€€€€€€€€€€€€€€½¹ÑÉ½±±•È¹¡¥‘”¡]¥¹‘½Ý%¹Í•ÑÌ¹QåÁ”¹ÍÑ…ÑÕÍ	…ÉÌ ¤ð]¥¹‘½Ý%¹Í•ÑÌ¹QåÁ”¹¹…Ù¥…Ñ¥½¹	…ÉÌ ¤¤ì(€€€€€€€€€€€€€€€½¹ÑÉ½±±•È¹Í•ÑMåÍÑ•µ	…ÉÍ	•¡…Ù¥½È¡]¥¹‘½Ý%¹Í•ÑÍ½¹ÑÉ½±±•È¹	!Y%=I}M!=]}QI9M%9Q}	IM}	e}M]%A¤ì(€€€€€€€€€€€ô(€€€€€€€ô•±Í”ì(€€€€€€€€€€€•Ñ]¥¹‘½Ü ¤¹•Ñ•½ÉY¥•Ü ¤¹Í•ÑMåÍÑ•µU¥Y¥Í¥‰¥±¥Ñä (€€€€€€€€€€€€€€€€€€€Y¥•Ü¹MeMQ5}U%}1}%55IM%Y}MQ%-d(€€€€€€€€€€€€€€€€€€€€€€€€€€€ðY¥•Ü¹MeMQ5}U%}1}U11MI8(€€€€€€€€€€€€€€€€€€€€€€€€€€€ðY¥•Ü¹MeMQ5}U%}1}!%}9Y%Q%=8(€€€€€€€€€€€€€€€€€€€€€€€€€€€ðY¥•Ü¹MeMQ5}U%}1}1e=UQ}U11MI8(€€€€€€€€€€€€€€€€€€€€€€€€€€€ðY¥•Ü¹MeMQ5}U%}1}1e=UQ}!%}9Y%Q%=8(€€€€€€€€€€€€€€€€€€€€€€€€€€€ðY¥•Ü¹MeMQ5}U%}1}1e=UQ}MQ	1¤ì(€€€€€€€ô(€€€ô)ô(
