@@ -1,19 +1,28 @@
 package com.xgamerstore.nightfall;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
+import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.net.Uri;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.webkit.ConsoleMessage;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebResourceResponse;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -25,7 +34,10 @@ public final class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         enterImmersiveMode();
+        startGameView();
+    }
 
+    private void startGameView() {
         gameView = new WebView(this);
         gameView.setBackgroundColor(0xFF090C10);
         gameView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
@@ -47,11 +59,31 @@ public final class MainActivity extends Activity {
         gameView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onConsoleMessage(ConsoleMessage message) {
-                android.util.Log.d("NightfallGame", message.message() + " (" + message.sourceId() + ":" + message.lineNumber() + ")");
+                android.util.Log.d("NightfallGame", message.message() + " ("
+                        + message.sourceId() + ":" + message.lineNumber() + ")");
                 return true;
             }
         });
         gameView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                if (request.isForMainFrame()) {
+                    showFailure("Nepodařilo se otevřít herní svět. " + error.getDescription());
+                }
+            }
+
+            @TargetApi(Build.VERSION_CODES.O)
+            @Override
+            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                showFailure("3D vykreslování se zastavilo. Zkus hru znovu spustit.");
+                if (view.getParent() instanceof ViewGroup) {
+                    ((ViewGroup) view.getParent()).removeView(view);
+                }
+                view.destroy();
+                if (gameView == view) gameView = null;
+                return true;
+            }
+
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
@@ -80,6 +112,43 @@ public final class MainActivity extends Activity {
         });
         setContentView(gameView);
         gameView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
+    }
+
+    private void showFailure(String message) {
+        if (isFinishing()) return;
+        LinearLayout screen = new LinearLayout(this);
+        screen.setOrientation(LinearLayout.VERTICAL);
+        screen.setGravity(Gravity.CENTER);
+        screen.setPadding(32, 32, 32, 32);
+        screen.setBackgroundColor(Color.rgb(9, 12, 16));
+
+        TextView title = new TextView(this);
+        title.setText("NIGHTFALL se nepodařilo spustit");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(22);
+        title.setGravity(Gravity.CENTER);
+        screen.addView(title);
+
+        TextView detail = new TextView(this);
+        detail.setText(message);
+        detail.setTextColor(Color.LTGRAY);
+        detail.setTextSize(15);
+        detail.setGravity(Gravity.CENTER);
+        detail.setPadding(0, 16, 0, 20);
+        screen.addView(detail);
+
+        Button retry = new Button(this);
+        retry.setText("SPUSTIT ZNOVU");
+        retry.setOnClickListener(v -> {
+            if (gameView != null) {
+                gameView.loadUrl("about:blank");
+                gameView.destroy();
+                gameView = null;
+            }
+            startGameView();
+        });
+        screen.addView(retry);
+        setContentView(screen);
     }
 
     @Override

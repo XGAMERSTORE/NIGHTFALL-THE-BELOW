@@ -12,6 +12,8 @@ Requires JDK 17 and Android SDK Platform 35 / Build Tools 35.0.0.
 
 The installable debug APK is written to `app/build/outputs/apk/debug/`. The Play Console AAB is written to `app/build/outputs/bundle/release/` and is unsigned until a developer upload key is configured.
 
+GitHub Actions builds both files on pushes to `main` and `codex/**`, on pull requests to `main`, and when started manually. Download them from the completed `Android build` run under **Actions → Artifacts**.
+
 ## Mobile controls
 
 - Hold the directional pad to move.
@@ -21,4 +23,4 @@ The installable debug APK is written to `app/build/outputs/apk/debug/`. The Play
 
 ## Graphics fix
 
-The third-person camera previously read an unset `game.y` value. That made the camera position `NaN` after entering the world, so WebGL rendered an empty scene. The camera now follows the player's actual rig height. The Android host enables hardware acceleration and immersive landscape mode; the touch UI and render settings are tuned for phone screens.
+The third-person camera previously read an unset `game.y` value. That made the camera position `NaN` after entering the world, so WebGL rendered an empty scene. The camera now follows the player's actual rig height. The mobile build shares repeated mesh geometry and materials, uses a lower render scale, and limits distant salvage and trees to reduce startup and GPU memory use. The Android host enables hardware acceleration and shows a restart screen if the WebView renderer stops.
