@@ -2,7 +2,7 @@
 
 A landscape 3D horror-survival prototype set across Greendale, Riverdale, and the breach below. The game keeps scavenging, crafting, building, survival meters, and co-op, with a witchcraft story, named NPC encounters, broom flight, Witchfire, a grapple charm, and protective runic wards.
 
-The world uses bundled Three.js and locally generated terrain detail, so the 3D scene does not need a graphics-library download. Internet access is used only when a player chooses co-op.
+The world uses bundled Three.js and original 1024 × 1024 PBR texture sets for wet forest soil, cedar bark, and weathered cabin wood. It also includes separate normal and roughness maps, a generated overcast/night sky, higher mobile render resolution, and anisotropic filtering. The game does not need a graphics-library download; internet access is used only when a player chooses co-op.
 
 This is still a lightweight prototype. Characters, monsters, buildings, and trees are procedural low-poly models; it does not contain photorealistic character models, facial animation, or a full commercial-game physics simulation. The current gameplay includes momentum-based movement, collisions with trees, gravity and landing damage, and a fear system that reacts to nearby monsters and eases near allies, wards, and fire.
 
@@ -28,4 +28,4 @@ GitHub Actions builds both files on pushes to `main` and `codex/**`, on pull req
 
 ## Story
 
-Sabrina Spellman and the Spellman family search for three broken wards after a red eclipse opens the Ninth Gate beneath Greendale. Riverdale's missing-person cases lead to the same breach. The field journal tracks three sigils and the final confrontation.
+The Czech-language story sends Sabrina, the Spellman family, Salem, and the Riverdale group through a red-eclipse breach beneath Greendale. Craft the Witchglass compass, find three clues, then cross the Ninth Gate into a separate Hell arena. Speak with the gathered allies, recover three seals, defeat the Gate Prisoner with Witchfire, and return through the portal. Realm changes, seals, and the ending synchronize in co-op and save locally.
