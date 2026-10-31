@@ -1,0 +1,47 @@
+name: Last Haven Android APK
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'LAST-HAVEN-AFTER-DARK/**'
+      - '.github/workflows/last-haven-android.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot and Android export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.3.0
+          use-dotnet: false
+          include-templates: true
+      - name: Prepare Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android packages
+        run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Set Android SDK paths
+        run: |
+          godot --headless --editor --path LAST-HAVEN-AFTER-DARK --quit
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.tres <<EOF
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          EOF
+      - name: Generate debug keystore
+        run: |
+          keytool -genkeypair -v -keystore /tmp/last-haven-debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+      - name: Export debug APK
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /tmp/last-haven-debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+        run: |
+          mkdir -p LAST-HAVEN-AFTER-DARK/build
+          godot --headless --path LAST-HAVEN-AFTER-DARK --export-debug "Android" build/LastHaven-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: last-haven-debug-apk
+          path: LAST-HAVEN-AFTER-DARK/build/LastHaven-debug.apk
