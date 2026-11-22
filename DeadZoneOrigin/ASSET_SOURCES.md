@@ -8,6 +8,9 @@
 | Zombie člověk, základ zdarma | [Zombie Female: Nurse](https://www.fab.com/listings/35246f73-70ca-41ac-816b-55ead87dbcbc) | Dodavatel uvádí bezplatný vzorek s idle, walk, attack; získat přes Fab |
 | Zombie člověk, kvalitnější alternativa | [Zombie Custom MetaHuman](https://www.fab.com/listings/5c3db69f-b962-4d3b-9a62-0e939e9b25e8) | 8K PBR, rigovaný character; cenu a licence ověřit u nabídky |
 | Zombie člověk, další alternativa | [Male MetaHuman Zombie Mad Patient 0](https://www.fab.com/listings/ccc3018c-3155-405d-857a-23252e811e2a) | MetaHuman zombie s variantami pro film a realtime |
+| Zombie pes | [Dog Zombie (Fab)](https://www.fab.com/listings/da3dfd97-2466-4f9d-ba58-3d29c85df972) | Rigovaný PBR model, autor uvádí 59 animací; cenu ověřit |
+| Zombie jelen (základ) | [Deer Rigged 34 animations](https://www.fab.com/listings/1e34db43-5c21-4dd2-b3cd-5c4a799b01f1) | Rigovaná anatomie, vlastní infekční materiál |
+| Zombie vrána (základ) | [Realistic Animated Carrion Crow](https://www.fab.com/listings/2adf0937-5554-4dc4-993c-ef1b3a1f5525) | Vlastní ptačí rig; infekční textury dopracovat |
 | Humanoidní chůze, běh, zásahy | [Adobe Mixamo](https://www.mixamo.com/) | Animace pro humanoidy; ne pro čtyřnohá zvířata |
 | Ruiny / zdi | [Poly Haven Damaged Plaster](https://polyhaven.com/a/damaged_plaster) | CC0 PBR |
 | Fasády | [Poly Haven Cracked Concrete Wall](https://polyhaven.com/a/cracked_concrete_wall) | CC0 PBR |
